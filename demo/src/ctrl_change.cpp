@@ -37,7 +37,7 @@
 #include <moveit/task_constructor/stages/fixed_state.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
 #include <moveit/task_constructor/solvers/joint_interpolation.h>
-#include <moveit/task_constructor/stages/move_to.h>
+#include <moveit/task_constructor/stages/set_controller.h>
 #include <moveit/task_constructor/stages/move_relative.h>
 #include <moveit/task_constructor/stages/connect.h>
 
@@ -53,12 +53,9 @@ Task createTask() {
 	t.stages()->setName("Cartesian Path");
 
 	const std::string group = "panda_arm";
-	const std::string eef = "hand";
 
-	// create Cartesian interpolation "planner" to be used in various stages
-	auto cartesian_interpolation = std::make_shared<solvers::CartesianPath>();
-	// create a joint-space interpolation "planner" to be used in various stages
-	auto joint_interpolation = std::make_shared<solvers::JointInterpolationPlanner>();
+	// create Cartesian interpolation "planner" to be used in stages
+	auto cartesian = std::make_shared<solvers::CartesianPath>();
 
 	// start from a fixed robot state
 	t.loadRobotModel();
@@ -73,7 +70,13 @@ Task createTask() {
 	}
 
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("x +0.2", cartesian_interpolation);
+		auto stage = std::make_unique<stages::SetController>("set_via_ctrl");
+		stage->addControllerName("fake_via_panda_arm_controller");
+		t.add(std::move(stage));
+	}
+
+	{
+		auto stage = std::make_unique<stages::MoveRelative>("x +0.2", cartesian);
 		stage->setGroup(group);
 		geometry_msgs::Vector3Stamped direction;
 		direction.header.frame_id = "world";
@@ -83,7 +86,13 @@ Task createTask() {
 	}
 
 	{
-		auto stage = std::make_unique<stages::MoveRelative>("y -0.3", cartesian_interpolation);
+		auto stage = std::make_unique<stages::SetController>("set_last_ctrl");
+		stage->addControllerName("fake_last_panda_arm_controller");
+		t.add(std::move(stage));
+	}
+
+	{
+		auto stage = std::make_unique<stages::MoveRelative>("y -0.3", cartesian);
 		stage->setGroup(group);
 		geometry_msgs::Vector3Stamped direction;
 		direction.header.frame_id = "world";
@@ -93,7 +102,7 @@ Task createTask() {
 	}
 
 	{  // rotate about TCP
-		auto stage = std::make_unique<stages::MoveRelative>("rz +45°", cartesian_interpolation);
+		auto stage = std::make_unique<stages::MoveRelative>("rz +45°", cartesian);
 		stage->setGroup(group);
 		geometry_msgs::TwistStamped twist;
 		twist.header.frame_id = "world";
@@ -103,23 +112,16 @@ Task createTask() {
 	}
 
 	{  // perform a Cartesian motion, defined as a relative offset in joint space
-		auto stage = std::make_unique<stages::MoveRelative>("joint offset", cartesian_interpolation);
+		auto stage = std::make_unique<stages::MoveRelative>("joint offset", cartesian);
 		stage->setGroup(group);
 		std::map<std::string, double> offsets = { { "panda_joint1", M_PI / 6. }, { "panda_joint3", -M_PI / 6 } };
 		stage->setDirection(offsets);
 		t.add(std::move(stage));
 	}
 
-	{  // move gripper into predefined open state
-		auto stage = std::make_unique<stages::MoveTo>("open gripper", joint_interpolation);
-		stage->setGroup(eef);
-		stage->setGoal("open");
-		t.add(std::move(stage));
-	}
-
 	{  // move from reached state back to the original state, using joint interpolation
-		// specifying two groups (arm and hand) will try to merge both trajectories
-		stages::Connect::GroupPlannerVector planners = { { group, joint_interpolation }, { eef, joint_interpolation } };
+		auto joint_interpolation = std::make_shared<solvers::JointInterpolationPlanner>();
+		stages::Connect::GroupPlannerVector planners = { { group, joint_interpolation } };
 		auto connect = std::make_unique<stages::Connect>("connect", planners);
 		t.add(std::move(connect));
 	}
@@ -133,10 +135,21 @@ Task createTask() {
 	return t;
 }
 
+std::string buildControllerString(moveit_task_constructor_msgs::SubTrajectory st) {
+	if (st.controller_names.empty())
+		return "";
+
+	std::stringstream ss;
+	for (auto cn : st.controller_names) {
+		ss << cn.data << ";";
+	}
+	return ss.str();
+}
+
 int main(int argc, char** argv) {
 	ros::init(argc, argv, "mtc_tutorial");
 	// run an asynchronous spinner to communicate with the move_group node and rviz
-	ros::AsyncSpinner spinner(1);
+	ros::AsyncSpinner spinner(4);
 	spinner.start();
 
 	actionlib::SimpleActionClient<moveit_task_constructor_msgs::ExecuteTaskSolutionAction> ac("execute_task_solution",
@@ -145,11 +158,11 @@ int main(int argc, char** argv) {
 
 	auto task = createTask();
 	try {
-		if (!task.plan()) {
+		if (task.plan()) {
+			task.introspection().publishSolution(*task.solutions().front());
+		} else {
 			std::cerr << "planning failed" << std::endl;
 			return 0;
-		} else {
-			task.introspection().publishSolution(*task.solutions().front());
 		}
 	} catch (const InitStageException& ex) {
 		std::cerr << "planning failed with exception" << std::endl << ex << task;
@@ -157,6 +170,14 @@ int main(int argc, char** argv) {
 
 	moveit_task_constructor_msgs::ExecuteTaskSolutionGoal execute_goal;
 	task.solutions().front()->fillMessage(execute_goal.solution);
+
+	printf("SubTrajectories: %zu\n", execute_goal.solution.sub_trajectory.size());
+
+	for (int i = 0; i < execute_goal.solution.sub_trajectory.size(); i++) {
+		auto st = execute_goal.solution.sub_trajectory[i];
+		printf("\tST%d with %zu points and controllers \"%s\"\n", i, st.trajectory.joint_trajectory.points.size(),
+		       buildControllerString(st).c_str());
+	}
 
 	ac.sendGoal(execute_goal);
 	ac.waitForResult();
