@@ -47,6 +47,7 @@ function(demo name)
 endfunction()
 
 demo(cartesian)
+demo(ctrl_change)
 demo(modular)
 demo(alternative_path_costs)
 demo(ik_clearance_cost)
