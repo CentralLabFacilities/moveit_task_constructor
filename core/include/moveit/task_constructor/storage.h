@@ -46,6 +46,8 @@
 #include <moveit_task_constructor_msgs/Solution.h>
 #include <visualization_msgs/MarkerArray.h>
 
+#include <std_msgs/String.h>
+
 #include <list>
 #include <vector>
 #include <deque>

@@ -4,12 +4,12 @@ project(moveit_task_constructor_core)
 find_package(Boost REQUIRED)
 find_package(catkin REQUIRED COMPONENTS
 	roslint
+	moveit_task_constructor_msgs
 	tf2_eigen
 	geometry_msgs
 	moveit_core
 	moveit_ros_planning
-	moveit_ros_planning_interface
-	moveit_task_constructor_msgs
+	moveit_ros_planning_interface	
 	roscpp
 	visualization_msgs
 	rviz_marker_tools
