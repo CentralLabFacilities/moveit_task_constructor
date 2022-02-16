@@ -204,7 +204,7 @@ std::vector<std::string> ExecuteTaskSolutionCapability::msgToString(std::vector<
 		return stdv;
 
 	for (auto str : sv) {
-		std::string data = sv.data()->data;
+		std::string data = str.data;
 		if (data == "")
 			continue;
 		stdv.push_back(data);
