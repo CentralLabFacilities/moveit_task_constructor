@@ -86,8 +86,15 @@ bool CartesianPath::plan(const planning_scene::PlanningSceneConstPtr& from, cons
 	                                       const double* joint_positions) {
 		state->setJointGroupPositions(jmg, joint_positions);
 		state->update();
-		return !sandbox_scene->isStateColliding(const_cast<const robot_state::RobotState&>(*state), jmg->getName()) &&
-		       kcs.decide(*state).satisfied;
+		collision_detection::CollisionResult::ContactMap contact;
+		bool collision = sandbox_scene->isStateColliding(const_cast<const robot_state::RobotState&>(*state), jmg->getName());
+		sandbox_scene->getCollidingPairs(contact);
+		// TODO print links involved in collision
+		ROS_DEBUG_STREAM("isStateColliding = " << collision);
+		if (collision) {
+			ROS_WARN_STREAM(" collision size " << contact.size() << " collision: " << contact.begin()->first.first << " - " << contact.begin()->first.second);
+		}
+		return !collision && kcs.decide(*state).satisfied;
 	};
 
 	std::vector<moveit::core::RobotStatePtr> trajectory;
