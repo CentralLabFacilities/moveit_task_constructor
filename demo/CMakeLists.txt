@@ -16,15 +16,6 @@ catkin_package(
 )
 
 
-add_library(${PROJECT_NAME}_lib src/pick_place_task.cpp)
-set_target_properties(${PROJECT_NAME}_lib PROPERTIES OUTPUT_NAME moveit_task_constructor_demo_pick_place)
-add_dependencies(${PROJECT_NAME}_lib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-add_executable(${PROJECT_NAME}_demo src/moveit_task_constructor_demo.cpp)
-target_link_libraries(${PROJECT_NAME}_demo
-  ${PROJECT_NAME}_lib
-  ${catkin_LIBRARIES}
-)
 
 add_library(${PROJECT_NAME}_pick_place_task src/pick_place_task.cpp)
 target_link_libraries(${PROJECT_NAME}_pick_place_task ${catkin_LIBRARIES})
