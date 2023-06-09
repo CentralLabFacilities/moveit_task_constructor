@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
 	moveit_task_constructor_msgs
 	tf2_eigen
 	geometry_msgs
+	std_msgs
 	moveit_core
 	moveit_ros_planning
 	moveit_ros_planning_interface	

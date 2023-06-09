@@ -42,6 +42,7 @@
 #include <moveit/task_constructor/storage.h>
 #include <moveit/task_constructor/properties.h>
 #include <moveit/task_constructor/type_traits.h>
+#include <std_msgs/String.h>
 #include <map>
 
 namespace moveit {
