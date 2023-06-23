@@ -235,7 +235,7 @@ SubTrajectoryPtr Connect::merge(const std::vector<robot_trajectory::RobotTraject
 		return SubTrajectoryPtr();
 
 
-	if(trajectory->getWayPointCount() <= 1) {
+	if(trajectory != nullptr && trajectory->getWayPointCount() <= 1) {
 		//if(start != end) {
 		ROS_FATAL_STREAM("merge failed?");
 		return SubTrajectoryPtr();
