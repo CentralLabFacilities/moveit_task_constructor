@@ -169,7 +169,7 @@ void Connect::compute(const InterfaceState& from, const InterfaceState& to) {
 	}
 
 	SolutionBasePtr solution;
-	if (success && mode != SEQUENTIAL)  // try to merge
+	if (success && mode != SEQUENTIAL) // try to merge
 		solution = merge(sub_trajectories, intermediate_scenes, from.scene()->getCurrentState());
 	if (!solution)  // success == false or merging failed: store sequentially
 		solution = makeSequential(sub_trajectories, intermediate_scenes, from, to);
@@ -233,6 +233,14 @@ SubTrajectoryPtr Connect::merge(const std::vector<robot_trajectory::RobotTraject
 	if (!intermediate_scenes.front()->isPathValid(*trajectory,
 	                                              properties().get<moveit_msgs::Constraints>("path_constraints")))
 		return SubTrajectoryPtr();
+
+
+	if(trajectory->getWayPointCount() <= 1) {
+		//if(start != end) {
+		ROS_FATAL_STREAM("merge failed?");
+		return SubTrajectoryPtr();
+		//}
+	}
 
 	return std::make_shared<SubTrajectory>(trajectory);
 }

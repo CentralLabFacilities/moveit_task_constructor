@@ -168,6 +168,15 @@ bool PipelinePlanner::plan(const planning_scene::PlanningSceneConstPtr& from,
 	::planning_interface::MotionPlanResponse res;
 	bool success = planner_->generatePlan(from, req, res);
 	result = res.trajectory_;
+	if(result->getWayPointCount() <= 1) {
+		//TODO make sure this does not happen, detect crasy jumps
+		auto start = from->getCurrentState();
+		auto end = to->getCurrentState();
+		//if(start != end) {
+			ROS_FATAL_STREAM("set pipeline plan to failed, low waypoint number");
+			success = false;
+		//}
+	}
 	return success;
 }
 
