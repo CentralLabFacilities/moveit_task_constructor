@@ -106,6 +106,19 @@ void ExecuteTaskSolutionCapability::goalCallback(
 		result.error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_MOTION_PLAN;
 	else {
 		ROS_INFO_NAMED("ExecuteTaskSolution", "Executing TaskSolution");
+		for(plan_execution::ExecutableTrajectory& et :  plan.plan_components_){
+			robot_trajectory::RobotTrajectoryPtr traj = et.trajectory_;
+			for (unsigned int i = 1; i < traj->getWayPointCount(); ++i)
+			{
+				if (traj->getWayPointDurationFromPrevious(i) <= 0.0)
+				{
+					ROS_ERROR_STREAM_NAMED("ExecuteTaskSolution", "Traj: WAYPOINT " << i << " no duration");
+				} else {
+					ROS_ERROR_STREAM_NAMED("ExecuteTaskSolution", "Traj: WAYPOINT duration " << traj->getWayPointDurationFromPrevious(i));
+				}
+			}
+			
+		}
 		result.error_code = context_->plan_execution_->executeAndMonitor(plan);
 	}
 
