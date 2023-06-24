@@ -105,7 +105,7 @@ void ExecuteTaskSolutionCapability::goalCallback(
 	if (!constructMotionPlan(goal->solution, plan))
 		result.error_code.val = moveit_msgs::MoveItErrorCodes::INVALID_MOTION_PLAN;
 	else {
-		ROS_INFO_NAMED("ExecuteTaskSolution", "Executing TaskSolution");
+		ROS_INFO_NAMED("ExecuteTaskSolution", "Executing TaskSolution updated");
 		for(plan_execution::ExecutableTrajectory& et :  plan.plan_components_){
 			robot_trajectory::RobotTrajectoryPtr traj = et.trajectory_;
 			for (unsigned int i = 1; i < traj->getWayPointCount(); ++i)
