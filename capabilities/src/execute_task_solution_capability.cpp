@@ -112,9 +112,16 @@ void ExecuteTaskSolutionCapability::goalCallback(
 			{
 				if (traj->getWayPointDurationFromPrevious(i) <= 0.0)
 				{
-					ROS_ERROR_STREAM_NAMED("ExecuteTaskSolution", "Traj: WAYPOINT " << i << " no duration");
+					ROS_WARN_NAMED("ExecuteTaskSolution", "waypoint is the same as previous");
+					auto prev = traj->getWayPoint(i-1);
+					auto cur = traj->getWayPoint(i);
+					if(prev.distance(cur) == 0) {
+						ROS_INFO_NAMED("ExecuteTaskSolution", "point is the same, try to fix the trajectory");
+						traj->setWayPointDurationFromPrevious(i, 0.001);
+					}
+					//ROS_ERROR_STREAM_NAMED("ExecuteTaskSolution", "Traj: WAYPOINT " << i << " no duration");
 				} else {
-					ROS_ERROR_STREAM_NAMED("ExecuteTaskSolution", "Traj: WAYPOINT duration " << traj->getWayPointDurationFromPrevious(i));
+					//ROS_ERROR_STREAM_NAMED("ExecuteTaskSolution", "Traj: WAYPOINT duration " << traj->getWayPointDurationFromPrevious(i));
 				}
 			}
 			
