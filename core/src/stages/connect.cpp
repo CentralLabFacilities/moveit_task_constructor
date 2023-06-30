@@ -133,6 +133,7 @@ bool Connect::compatible(const InterfaceState& from_state, const InterfaceState&
 }
 
 void Connect::compute(const InterfaceState& from, const InterfaceState& to) {
+	ROS_WARN_STREAM("Computing");
 	const auto& props = properties();
 	double timeout = this->timeout();
 	MergeMode mode = props.get<MergeMode>("merge_mode");
