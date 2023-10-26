@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
 	}
 
 	moveit_task_constructor_msgs::ExecuteTaskSolutionGoal execute_goal;
-	task.solutions().front()->fillMessage(execute_goal.solution);
+	task.solutions().front()->toMsg(execute_goal.solution);
 
 	printf("SubTrajectories: %zu\n", execute_goal.solution.sub_trajectory.size());
 
