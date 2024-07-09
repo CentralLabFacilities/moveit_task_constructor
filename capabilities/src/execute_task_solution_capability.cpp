@@ -166,6 +166,14 @@ bool ExecuteTaskSolutionCapability::constructMotionPlan(const moveit_task_constr
 		exec_traj.trajectory_->setRobotTrajectoryMsg(state, sub_traj.trajectory);
 		exec_traj.controller_names_ = sub_traj.execution_info.controller_names;
 
+		for (int i = 1; i < exec_traj.trajectory_->getWayPointCount(); i++) {
+			auto from_prev = exec_traj.trajectory_->getWayPointDurationFromPrevious(i);
+			if(from_prev < 0.0001) {
+				ROS_ERROR_NAMED("ExecuteTaskSolution", "Found broken waypoint? fixing...");
+				exec_traj.trajectory_->setWayPointDurationFromPrevious(i, 0.0001);
+			}
+		}
+
 		/* TODO add action feedback and markers */
 		exec_traj.effect_on_success_ = [this,
 		                                &scene_diff = const_cast<::moveit_msgs::PlanningScene&>(sub_traj.scene_diff),
