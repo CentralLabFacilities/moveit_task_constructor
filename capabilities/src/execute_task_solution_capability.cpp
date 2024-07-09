@@ -166,6 +166,15 @@ bool ExecuteTaskSolutionCapability::constructMotionPlan(const moveit_task_constr
 		exec_traj.trajectory_->setRobotTrajectoryMsg(state, sub_traj.trajectory);
 		exec_traj.controller_names_ = sub_traj.execution_info.controller_names;
 
+		//hack
+		for (int i = 1; i < exec_traj.trajectory_->getWayPointCount(); i++) {
+			auto from_prev = exec_traj.trajectory_->getWayPointDurationFromPrevious(i);
+			if(from_prev < 0.0001) {
+				ROS_ERROR_NAMED("ExecuteTaskSolution", "Found broken waypoint? fixing...");
+				exec_traj.trajectory_->setWayPointDurationFromPrevious(i, 0.0001);
+			}
+		}
+
 		exec_traj.effect_on_success_ =
 		    [this, &scene_diff = const_cast<::moveit_msgs::PlanningScene&>(sub_traj.scene_diff), description, i,
 		     no = solution.sub_trajectory.size()](const plan_execution::ExecutableMotionPlan* /*plan*/) {
@@ -174,7 +183,6 @@ bool ExecuteTaskSolutionCapability::constructMotionPlan(const moveit_task_constr
 			    feedback.sub_id = i;
 			    feedback.sub_no = no;
 			    as_->publishFeedback(feedback);
-
 			    // Never modify joint state directly (only via robot trajectories)
 			    scene_diff.robot_state.joint_state = sensor_msgs::JointState();
 			    scene_diff.robot_state.multi_dof_joint_state = sensor_msgs::MultiDOFJointState();
