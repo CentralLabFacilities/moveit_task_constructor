@@ -49,6 +49,8 @@ namespace stages {
 
 ModifyPlanningScene::ModifyPlanningScene(const std::string& name) : PropagatingEitherWay(name) {
 	setCostTerm(std::make_unique<cost::Constant>(0.0));
+	auto& p = properties();
+	p.declare<bool>("check_collision", false, "do collision check");
 }
 
 void ModifyPlanningScene::attachObjects(const Names& objects, const std::string& attach_link, bool attach) {
@@ -154,17 +156,21 @@ std::pair<InterfaceState, SubTrajectory> ModifyPlanningScene::apply(const Interf
 		if (callback_)
 			callback_(scene, properties());
 
-		// check for collisions
-		collision_detection::CollisionRequest req;
-		collision_detection::CollisionResult res;
-		req.contacts = true;
-		req.max_contacts = 1;
-		scene->checkCollision(req, res);
-		if (res.collision) {
-			const auto contact = res.contacts.begin()->second.front();
-			traj.markAsFailure(contact.body_name_1 + " colliding with " + contact.body_name_2);
-			utils::addCollisionMarkers(traj.markers(), scene->getPlanningFrame(), res.contacts);
+		const auto& props = properties();
+		if(props.get<bool>("check_collision")) {
+			// check for collisions
+			collision_detection::CollisionRequest req;
+			collision_detection::CollisionResult res;
+			req.contacts = true;
+			req.max_contacts = 1;
+			scene->checkCollision(req, res);
+			if (res.collision) {
+				const auto contact = res.contacts.begin()->second.front();
+				traj.markAsFailure(contact.body_name_1 + " colliding with " + contact.body_name_2);
+				utils::addCollisionMarkers(traj.markers(), scene->getPlanningFrame(), res.contacts);
+			}
 		}
+		
 	} catch (const std::exception& e) {
 		traj.markAsFailure(e.what());
 	}
