@@ -153,6 +153,18 @@ std::pair<InterfaceState, SubTrajectory> ModifyPlanningScene::apply(const Interf
 
 		if (callback_)
 			callback_(scene, properties());
+
+		// check for collisions
+		collision_detection::CollisionRequest req;
+		collision_detection::CollisionResult res;
+		req.contacts = true;
+		req.max_contacts = 1;
+		scene->checkCollision(req, res);
+		if (res.collision) {
+			const auto contact = res.contacts.begin()->second.front();
+			traj.markAsFailure(contact.body_name_1 + " colliding with " + contact.body_name_2);
+			utils::addCollisionMarkers(traj.markers(), scene->getPlanningFrame(), res.contacts);
+		}
 	} catch (const std::exception& e) {
 		traj.markAsFailure(e.what());
 	}

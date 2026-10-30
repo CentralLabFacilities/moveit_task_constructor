@@ -85,7 +85,7 @@ void InitStageException::append(InitStageException& other) {
 }
 
 const char* InitStageException::what() const noexcept {
-	static const char* msg = "Error initializing stage(s). ROS_ERROR_STREAM(e) for details.";
+	static const char* msg = "mtc::InitStageException. Use ROS_ERROR_STREAM(exc) for details.";
 	return msg;
 }
 
@@ -820,7 +820,7 @@ void ConnectingPrivate::newState(Interface::iterator it, Interface::UpdateFlags 
 		for (Interface::iterator oit : oit_to_enable)
 			parent_pimpl->setStatus<opposite<dir>()>(me(), &*it, &*oit, InterfaceState::Status::ENABLED);
 
-		if (!have_enabled_opposites)  // prune new state and associated branch if necessary
+		if (!have_enabled_opposites && parent()->pruning())  // prune new state and associated branch if necessary
 			// pass creator=nullptr to skip hasPendingOpposites() check as we did this here already
 			parent_pimpl->setStatus<dir>(nullptr, nullptr, &*it, InterfaceState::Status::ARMED);
 	}
@@ -908,8 +908,9 @@ bool Connecting::compatible(const InterfaceState& from_state, const InterfaceSta
 	const planning_scene::PlanningSceneConstPtr& from = from_state.scene();
 	const planning_scene::PlanningSceneConstPtr& to = to_state.scene();
 
-	auto false_with_debug = [](auto... args) {
-		ROS_DEBUG_STREAM_NAMED("Connecting", fmt::format(args...));
+	auto false_with_debug = [](const char* format_str, auto&&... args) {
+		ROS_DEBUG_STREAM_NAMED("Connecting",
+		                       fmt::format(fmt::runtime(format_str), std::forward<decltype(args)>(args)...));
 		return false;
 	};
 

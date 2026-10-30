@@ -1,4 +1,4 @@
-﻿/*********************************************************************
+/*********************************************************************
  * Software License Agreement (BSD License)
  *
  *  Copyright (c) 2020, Hamburg University
@@ -220,6 +220,30 @@ double LinkMotion::operator()(const SubTrajectory& s, std::string& comment) cons
 	return distance;
 }
 
+LinkRotation::LinkRotation(std::string link) : link_name{ std::move(link) } {}
+
+double LinkRotation::operator()(const SubTrajectory& s, std::string& comment) const {
+	const auto& traj{ s.trajectory() };
+
+	if (traj == nullptr || traj->getWayPointCount() == 0)
+		return 0.0;
+
+	if (!traj->getWayPoint(0).knowsFrameTransform(link_name)) {
+		comment = fmt::format("LinkRotationCost: frame '{}' unknown in trajectory", link_name);
+		return std::numeric_limits<double>::infinity();
+	}
+
+	double angular_distance{ 0.0 };
+
+	Eigen::Quaterniond q{ traj->getWayPoint(0).getFrameTransform(link_name).linear() };
+	for (size_t i{ 1 }; i < traj->getWayPointCount(); ++i) {
+		const Eigen::Quaterniond next_q{ traj->getWayPoint(i).getFrameTransform(link_name).linear() };
+		angular_distance += q.angularDistance(next_q);
+		q = next_q;
+	}
+	return angular_distance;
+}
+
 Clearance::Clearance(bool with_world, bool cumulative, std::string group_property, Mode mode)
   : with_world{ with_world }
   , cumulative{ cumulative }
@@ -228,7 +252,7 @@ Clearance::Clearance(bool with_world, bool cumulative, std::string group_propert
   , distance_to_cost{ [](double d) { return 1.0 / (d + 1e-5); } } {}
 
 double Clearance::operator()(const SubTrajectory& s, std::string& comment) const {
-	static const std::string PREFIX{ "Clearance: " };
+	constexpr std::string_view PREFIX{ "Clearance: " };
 
 	collision_detection::DistanceRequest request;
 	request.type =
@@ -273,7 +297,7 @@ double Clearance::operator()(const SubTrajectory& s, std::string& comment) const
 	} };
 
 	auto collision_comment = [=](const auto& distance) {
-		return fmt::format(PREFIX + "allegedly valid solution collides between '{}' and '{}'", distance.link_names[0],
+		return fmt::format("{}allegedly valid solution collides between '{}' and '{}'", PREFIX, distance.link_names[0],
 		                   distance.link_names[1]);
 	};
 
@@ -288,10 +312,10 @@ double Clearance::operator()(const SubTrajectory& s, std::string& comment) const
 		}
 		distance = distance_data.distance;
 		if (!cumulative)
-			comment = fmt::format(PREFIX + "distance {} between '{}' and '{}'", distance, distance_data.link_names[0],
+			comment = fmt::format("{}distance {} between '{}' and '{}'", PREFIX, distance, distance_data.link_names[0],
 			                      distance_data.link_names[1]);
 		else
-			comment = fmt::format(PREFIX + "cumulative distance {}", distance);
+			comment = fmt::format("{}cumulative distance {}", PREFIX, distance);
 	} else {  // check trajectory
 		for (size_t i = 0; i < s.trajectory()->getWayPointCount(); ++i) {
 			auto distance_data = check_distance(state, s.trajectory()->getWayPoint(i));
@@ -302,7 +326,7 @@ double Clearance::operator()(const SubTrajectory& s, std::string& comment) const
 			distance += distance_data.distance;
 		}
 		distance /= s.trajectory()->getWayPointCount();
-		comment = fmt::format(PREFIX + "average{} distance: {}", (cumulative ? " cumulative" : ""), distance);
+		comment = fmt::format("{}average{} distance: {}", PREFIX, (cumulative ? " cumulative" : ""), distance);
 	}
 
 	return distance_to_cost(distance);
